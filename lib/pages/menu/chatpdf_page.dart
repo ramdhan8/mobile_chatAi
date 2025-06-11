@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart';
+//import 'package:file_picker/file_picker.dart';
 
 class ChatpdfPage extends StatefulWidget {
   @override
@@ -9,29 +9,29 @@ class ChatpdfPage extends StatefulWidget {
 class _ChatpdfPageState extends State<ChatpdfPage> {
   // Function to handle file picking
   Future<void> _pickFile() async {
-    try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['pdf'], // Restrict to PDF files only
-      );
+    // try {
+    //   FilePickerResult? result = await FilePicker.platform.pickFiles(
+    //     type: FileType.custom,
+    //     allowedExtensions: ['pdf', 'doc', 'ppt'], // Allow pdf, doc, ppt files
+    //   );
 
-      if (result != null && result.files.single.path != null) {
-        PlatformFile file = result.files.single;
-        print('File picked: ${file.name}, Size: ${file.size} bytes');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('File ${file.name} selected successfully!')),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('No file selected.')),
-        );
-      }
-    } catch (e) {
-      print('Error picking file: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error picking file: $e')),
-      );
-    }
+    //   if (result != null && result.files.single.path != null) {
+    //     PlatformFile file = result.files.single;
+    //     print('File picked: ${file.name}, Size: ${file.size} bytes');
+    //     ScaffoldMessenger.of(context).showSnackBar(
+    //       SnackBar(content: Text('File ${file.name} selected successfully!')),
+    //     );
+    //   } else {
+    //     ScaffoldMessenger.of(context).showSnackBar(
+    //       SnackBar(content: Text('No file selected.')),
+    //     );
+    //   }
+    // } catch (e) {
+    //   print('Error picking file: $e');
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //     SnackBar(content: Text('Error picking file: $e')),
+    //   );
+    // }
   }
 
   // Function to handle PDF link input
@@ -101,7 +101,7 @@ class _ChatpdfPageState extends State<ChatpdfPage> {
             ),
             SizedBox(height: 20),
             Text(
-              'Klik atau seret file ke halaman ini untuk mengunggah',
+              'Klik atau seret file ke halaman ini untuk mengunggah atau masukkan tautan PDF',
               style: TextStyle(fontSize: 16),
               textAlign: TextAlign.center,
             ),
@@ -112,7 +112,7 @@ class _ChatpdfPageState extends State<ChatpdfPage> {
             ),
             SizedBox(height: 20),
             ElevatedButton(
-              onPressed: _pickFile,
+              onPressed: _pickFile, // Call the file picker function
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.black,
                 foregroundColor: Colors.white,

@@ -15,6 +15,7 @@ import 'package:chatapp/pages/menu/wisebase_page.dart';
 import 'package:flutter/material.dart';
 import 'package:chatapp/pages/auth/login_page.dart';
 import 'package:chatapp/services/api_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -28,7 +29,14 @@ class _HomePageState extends State<HomePage> {
   final ApiService _apiService = ApiService();
   Widget? container;
 
-  void _logout() async {
+ Future<void> _logout() async {
+    // Clear all chat histories from SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    final keys = prefs.getKeys().where((key) => key.startsWith('chat_history_'));
+    for (var key in keys) {
+      await prefs.remove(key);
+    }
+
     final result = await _apiService.logout();
     if (result['status'] == 'success') {
       Navigator.pushAndRemoveUntil(
@@ -46,6 +54,7 @@ class _HomePageState extends State<HomePage> {
         (route) => false,
       );
     }
+
   }
 
   @override
