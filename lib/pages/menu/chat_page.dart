@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 import '../widgets/chat_bubble.dart';
@@ -55,15 +56,14 @@ class _ChatPageState extends State<ChatPage> {
     ),
     AIModel(
       name: 'Grok',
-      apiKey: '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',
+      apiKey: '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', // Replace with your valid Groq API key
       modelName: 'llama3-70b-8192',
     ),
   ];
 
   AIModel? selectedModel;
-  GenerativeModel? model;
   TextEditingController messageController = TextEditingController();
-  List<Content> chatHistory = [];
+  List<Map<String, dynamic>> chatHistory = []; // Store messages as {role, content}
   List<ChatBubble> chatBubbles = [];
   bool isLoading = false;
   late String currentChatId;
@@ -75,10 +75,6 @@ class _ChatPageState extends State<ChatPage> {
     currentChatId = widget.chatId ?? DateTime.now().millisecondsSinceEpoch.toString();
     chatStartTime = widget.chatId != null ? null : DateTime.now();
     selectedModel = aiModels.first;
-    model = GenerativeModel(
-      model: selectedModel!.modelName,
-      apiKey: selectedModel!.apiKey,
-    );
     _loadChatHistory();
   }
 
@@ -104,7 +100,10 @@ class _ChatPageState extends State<ChatPage> {
         }).toList();
         chatHistory = decoded
             .where((item) => item['message'] != 'Typing...' && item['message'] != 'Listening...')
-            .map((item) => Content.text(item['message']))
+            .map((item) => {
+                  'role': item['direction'] == 'right' ? 'user' : 'assistant',
+                  'content': item['message'],
+                })
             .toList();
       });
     } else {
@@ -162,25 +161,6 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
-  Future<void> _updateChatInHistory() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? chatsString = prefs.getString('chats');
-    if (chatsString == null) return;
-
-    final List<dynamic> chatJson = jsonDecode(chatsString);
-    List<Chat> chats = chatJson.map((json) => Chat.fromJson(json)).toList();
-
-    final index = chats.indexWhere((chat) => chat.id == currentChatId);
-    if (index != -1) {
-      chats[index] = Chat(
-        id: currentChatId,
-        otherUser: 'AI',
-        createdAt: chats[index].createdAt,
-      );
-      await prefs.setString('chats', jsonEncode(chats.map((c) => c.toJson()).toList()));
-    }
-  }
-
   Future<void> _removeChatFromHistory() async {
     final prefs = await SharedPreferences.getInstance();
     final String? chatsString = prefs.getString('chats');
@@ -194,12 +174,10 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Future<void> _createNewChat() async {
-    // Save the current chat history to history
-    if (chatBubbles.length > 1) { // Only save if there are messages beyond the initial greeting
+    if (chatBubbles.length > 1) {
       await _saveChatHistory();
     }
 
-    // Start a new chat
     final newChatId = DateTime.now().millisecondsSinceEpoch.toString();
     setState(() {
       currentChatId = newChatId;
@@ -220,10 +198,6 @@ class _ChatPageState extends State<ChatPage> {
   void changeModel(AIModel newModel) {
     setState(() {
       selectedModel = newModel;
-      model = GenerativeModel(
-        model: newModel.modelName,
-        apiKey: newModel.apiKey,
-      );
       chatHistory.clear();
       chatBubbles = [
         ChatBubble(
@@ -236,18 +210,62 @@ class _ChatPageState extends State<ChatPage> {
     });
   }
 
+  Future<String?> _generateResponse(String message) async {
+    if (selectedModel!.name == 'Gemini') {
+      try {
+        final model = GenerativeModel(
+          model: selectedModel!.modelName,
+          apiKey: selectedModel!.apiKey,
+        );
+        final content = chatHistory.map((msg) => Content.text(msg['content'])).toList();
+        content.add(Content.text(message));
+        final response = await model.generateContent(content);
+        return response.text;
+      } catch (e) {
+        return 'Error: Failed to communicate with Gemini API. $e';
+      }
+    } else if (selectedModel!.name == 'Grok') {
+      try {
+        final response = await http.post(
+          Uri.parse('https://api.groq.com/openai/v1/chat/completions'),
+          headers: {
+            'Authorization': 'Bearer ${selectedModel!.apiKey}',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode({
+            'model': selectedModel!.modelName,
+            'messages': [
+              ...chatHistory,
+              {'role': 'user', 'content': message},
+            ],
+            'temperature': 0.7,
+          }),
+        );
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          return data['choices'][0]['message']['content'];
+        } else {
+          return 'Error: Failed to communicate with Groq API. Status: ${response.statusCode}';
+        }
+      } catch (e) {
+        return 'Error: $e';
+      }
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
-        // Save chat history when leaving if there are messages beyond the initial greeting
         if (chatBubbles.length > 1) {
           await _saveChatHistory();
         }
-        return true; // Allow back navigation
+        return true;
       },
       child: Scaffold(
-        appBar: null, // Remove the AppBar entirely
+        appBar: null,
         body: Column(
           children: [
             Expanded(
@@ -501,42 +519,24 @@ class _ChatPageState extends State<ChatPage> {
                                     ];
                                   });
 
-                                  chatHistory.add(Content.text(messageText));
+                                  chatHistory.add({'role': 'user', 'content': messageText});
 
-                                  try {
-                                    final GenerateContentResponse responseAI =
-                                        await model!.generateContent(chatHistory);
-
-                                    setState(() {
-                                      chatBubbles.removeLast();
-                                      chatBubbles = [
-                                        ...chatBubbles,
-                                        ChatBubble(
-                                          direction: Direction.left,
-                                          message: responseAI.text ?? 'Maaf, saya tidak mengerti',
-                                          photoUrl: 'https://avatar.iran.liara.run/public/17',
-                                          type: BubbleType.alone,
-                                        ),
-                                      ];
-                                    });
-
-                                    chatHistory.add(Content.text(responseAI.text ?? 'Maaf, saya tidak mengerti'));
-                                  } catch (e) {
-                                    setState(() {
-                                      chatBubbles.removeLast();
-                                      chatBubbles = [
-                                        ...chatBubbles,
-                                        const ChatBubble(
-                                          direction: Direction.left,
-                                          message: 'Error: Failed to communicate with the API.',
-                                          photoUrl: 'https://avatar.iran.liara.run/public/17',
-                                          type: BubbleType.alone,
-                                        ),
-                                      ];
-                                    });
-                                  }
+                                  final responseText = await _generateResponse(messageText);
 
                                   setState(() {
+                                    chatBubbles.removeLast();
+                                    chatBubbles = [
+                                      ...chatBubbles,
+                                      ChatBubble(
+                                        direction: Direction.left,
+                                        message: responseText ?? 'Maaf, saya tidak mengerti',
+                                        photoUrl: 'https://avatar.iran.liara.run/public/17',
+                                        type: BubbleType.alone,
+                                      ),
+                                    ];
+                                    if (responseText != null) {
+                                      chatHistory.add({'role': 'assistant', 'content': responseText});
+                                    }
                                     isLoading = false;
                                   });
                                 } else {

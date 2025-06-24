@@ -1,17 +1,8 @@
-import 'package:chatapp/pages/menu/alat_page.dart';
-import 'package:chatapp/pages/menu/bertanya_page.dart';
-import 'package:chatapp/pages/menu/cari_page.dart';
+
 import 'package:chatapp/pages/menu/chat_page.dart';
 import 'package:chatapp/pages/menu/chatpdf_page.dart';
 import 'package:chatapp/pages/menu/history_page.dart';
 import 'package:chatapp/pages/drawer/my_drawer_header.dart';
-import 'package:chatapp/pages/menu/lukis_page.dart';
-import 'package:chatapp/pages/menu/menerjemah_page.dart';
-import 'package:chatapp/pages/menu/menulis_page.dart';
-import 'package:chatapp/pages/menu/ocr_page.dart';
-import 'package:chatapp/pages/menu/opsi_page.dart';
-import 'package:chatapp/pages/menu/tata_page.dart';
-import 'package:chatapp/pages/menu/wisebase_page.dart';
 import 'package:flutter/material.dart';
 import 'package:chatapp/pages/auth/login_page.dart';
 import 'package:chatapp/services/api_service.dart';
