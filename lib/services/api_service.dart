@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  static const String _baseUrl = 'http://172.20.10.2/loginregishistory-backend';
+  static const String _baseUrl = 'http://192.168.100.17/loginregishistory-backend';
 
   static const Map<String, String> _headers = {
     'Content-Type': 'application/x-www-form-urlencoded',

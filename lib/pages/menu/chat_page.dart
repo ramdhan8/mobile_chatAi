@@ -55,8 +55,8 @@ class _ChatPageState extends State<ChatPage> {
     ),
     AIModel(
       name: 'Grok',
-      apiKey: 'YOUR_GROK_API_KEY',
-      modelName: 'grok-3',
+      apiKey: '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',
+      modelName: 'llama3-70b-8192',
     ),
   ];
 
